@@ -34,64 +34,103 @@ while True:
     except json.JSONDecodeError:
         continue  # Ignore malformed messages
 
-    msg_type = msg.get("type")
+    msg_type = msg.get("method")
 
     if msg_type == "initialize":
         respond({
-            "type": "initialize_result",
-            "protocol_version": "0.1",
-            "server_info": {"name": "Private GitLab MCP", "version": "0.1"}
+            "jsonrpc": "2.0",
+            "id": msg.get("id"),
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "tools": {}
+                },
+                "serverInfo": {
+                    "name": "Private GitLab MCP",
+                    "version": "0.1"
+                }
+            }
         })
 
     elif msg_type == "tools/list":
         respond({
-            "type": "tools/list_result",
-            "tools": [
-                {
-                    "name": "hello_world",
-                    "description": "Returns a friendly hello message",
-                    "input_schema": {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
+            "jsonrpc": "2.0",
+            "id": msg.get("id"),
+            "result": {
+                "tools": [
+                    {
+                        "name": "hello_world",
+                        "description": "Returns a friendly hello message",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {},
+                            "required": []
+                        }
+                    },
+                    {
+                        "name": "fetch_merge_request_diff",
+                        "description": "Fetches the diff of a given merge request for a GitLab project",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "project_path": {"type": "string"},
+                                "mr_iid": {"type": "integer"}
+                            },
+                            "required": ["project_path", "mr_iid"]
+                        }
                     }
-                },
-                {
-                    "name": "fetch_merge_request_diff",
-                    "description": "Fetches the diff of a given merge request for a GitLab project",
-                    "input_schema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": {"type": "string"},
-                            "mr_iid": {"type": "integer"}
-                        },
-                        "required": ["project_path", "mr_iid"]
-                    }
-                }
-            ]
+                ]
+            }
         })
 
     elif msg_type == "tools/call":
-        if msg.get("name") == "hello_world":
+        if msg.get("params", {}).get("name") == "hello_world":
             respond({
-                "type": "tools/call_result",
-                "result": "Hello from your Private GitLab MCP!"
+                "jsonrpc": "2.0",
+                "id": msg.get("id"),
+                "result": {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Hello from your Private GitLab MCP!"
+                        }
+                    ]
+                }
             })
-        elif msg.get("name") == "fetch_merge_request_diff":
+        elif msg.get("params", {}).get("name") == "fetch_merge_request_diff":
             try:
-                params = msg.get("params", {})
+                params = msg.get("params", {}).get("arguments", {})
                 project_path = params.get("project_path") or "portialinuxdevelopers/sources/apps/core"
                 mr_iid = params["mr_iid"]
                 result = fetch_mr_diff(project_path, mr_iid)
                 respond({
-                    "type": "tools/call_result",
-                    "result": result
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(result, indent=2)
+                            }
+                        ]
+                    }
                 })
             except Exception as e:
                 respond({
-                    "type": "error",
-                    "message": f"fetch_merge_request_diff failed: {e}"
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "error": {
+                        "code": -32603,
+                        "message": f"fetch_merge_request_diff failed: {e}"
+                    }
                 })
 
     else:
-        respond({"type": "error", "message": f"Unknown message type: {msg_type}"})
+        respond({
+            "jsonrpc": "2.0",
+            "id": msg.get("id"),
+            "error": {
+                "code": -32601,
+                "message": f"Unknown message type: {msg_type}"
+            }
+        })
