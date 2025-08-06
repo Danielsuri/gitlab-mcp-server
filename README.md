@@ -61,6 +61,23 @@ Fetches the diff of a GitLab merge request.
 }
 ```
 
+### `comment_merge_request`
+Posts a comment on a GitLab merge request.
+
+**Parameters:**
+- `project_path` (string): The GitLab project path (e.g., "group/subgroup/project")
+- `mr_iid` (integer): The merge request IID (internal ID)
+- `comment` (string): The comment text to post
+
+**Example usage:**
+```json
+{
+  "project_path": "portialinuxdevelopers/sources/apps/core",
+  "mr_iid": 9045,
+  "comment": "This looks good to me! LGTM 👍"
+}
+```
+
 ## Testing
 
 You can test the server manually:
@@ -71,6 +88,9 @@ echo '{"type":"tools/call","name":"hello_world","params":{}}' | ./mcp_server.py
 
 # Test merge request diff fetch
 echo '{"type":"tools/call","name":"fetch_merge_request_diff","params":{"project_path":"your/project/path","mr_iid":123}}' | ./mcp_server.py
+
+# Test merge request comment
+echo '{"type":"tools/call","name":"comment_merge_request","params":{"project_path":"your/project/path","mr_iid":123,"comment":"Great work!"}}' | ./mcp_server.py
 ```
 
 ## Troubleshooting

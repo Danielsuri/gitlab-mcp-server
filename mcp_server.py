@@ -18,6 +18,15 @@ def fetch_mr_diff(project_path, mr_iid):
     return [{"file": c["new_path"], "diff": c["diff"]} for c in data.get("changes", [])]
 
 
+def comment_merge_request(project_path, mr_iid, comment):
+    encoded_path = urllib.parse.quote_plus(project_path)
+    url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/notes"
+    data = {"body": comment}
+    resp = requests.post(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN}, json=data)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def respond(obj):
     """Send a JSON response over stdout"""
     sys.stdout.write(json.dumps(obj) + "\n")
@@ -78,6 +87,19 @@ while True:
                             },
                             "required": ["project_path", "mr_iid"]
                         }
+                    },
+                    {
+                        "name": "comment_merge_request",
+                        "description": "Posts a comment on a GitLab merge request",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "project_path": {"type": "string"},
+                                "mr_iid": {"type": "integer"},
+                                "comment": {"type": "string"}
+                            },
+                            "required": ["project_path", "mr_iid", "comment"]
+                        }
                     }
                 ]
             }
@@ -122,6 +144,34 @@ while True:
                     "error": {
                         "code": -32603,
                         "message": f"fetch_merge_request_diff failed: {e}"
+                    }
+                })
+        elif msg.get("params", {}).get("name") == "comment_merge_request":
+            try:
+                params = msg.get("params", {}).get("arguments", {})
+                project_path = params["project_path"]
+                mr_iid = params["mr_iid"]
+                comment = params["comment"]
+                result = comment_merge_request(project_path, mr_iid, comment)
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Comment posted successfully. Note ID: {result.get('id')}"
+                            }
+                        ]
+                    }
+                })
+            except Exception as e:
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "error": {
+                        "code": -32603,
+                        "message": f"comment_merge_request failed: {e}"
                     }
                 })
 
