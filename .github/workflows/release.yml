@@ -105,12 +105,11 @@ jobs:
     
     - name: Create GitHub Release
       if: ${{ !github.event.inputs.dry_run }}
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      id: create_release
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.new_version.outputs.new_version }}
-        release_name: Release v${{ steps.new_version.outputs.new_version }}
+        name: Release v${{ steps.new_version.outputs.new_version }}
         body: |
           ## GitLab MCP Server v${{ steps.new_version.outputs.new_version }}
           
@@ -131,19 +130,9 @@ jobs:
           - Version bump from ${{ steps.current_version.outputs.current }} to ${{ steps.new_version.outputs.new_version }}
           - Updated binary compilation process
           - Automated release workflow improvements
+        files: dist/*.whl
         draft: false
         prerelease: false
-    
-    - name: Upload Release Asset
-      if: ${{ !github.event.inputs.dry_run }}
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/gitlab_mcp_server-${{ steps.new_version.outputs.new_version }}-cp312-cp312-linux_x86_64.whl
-        asset_name: gitlab_mcp_server-${{ steps.new_version.outputs.new_version }}-cp312-cp312-linux_x86_64.whl
-        asset_content_type: application/octet-stream
     
     - name: Summary
       run: |
