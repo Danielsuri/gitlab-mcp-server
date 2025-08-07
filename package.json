@@ -1,0 +1,38 @@
+{
+  "name": "gitlab-mcp-server",
+  "version": "0.1.0",
+  "description": "A Model Context Protocol (MCP) server for fetching GitLab merge request diffs from private GitLab instances",
+  "main": "server.js",
+  "bin": {
+    "gitlab-mcp-server": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test-server.js",
+    "test-hello": "echo '{\"type\":\"tools/call\",\"name\":\"hello_world\",\"params\":{}}' | node test-server.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gitlab",
+    "merge-request",
+    "diff",
+    "api"
+  ],
+  "author": "GitLab MCP Server",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Danielsuri/gitlab-mcp-server.git"
+  },
+  "homepage": "https://github.com/Danielsuri/gitlab-mcp-server",
+  "bugs": {
+    "url": "https://github.com/Danielsuri/gitlab-mcp-server/issues"
+  },
+  "dependencies": {
+    "axios": "^1.11.0"
+  }
+}
