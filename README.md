@@ -61,16 +61,65 @@ Fetches the diff of a GitLab merge request.
 }
 ```
 
+### `get_merge_request_commentable_lines`
+Gets a list of lines that can be commented on in a merge request diff. This is useful to identify valid line numbers before adding inline comments.
+
+**Parameters:**
+- `project_path` (string): The GitLab project path (e.g., "group/subgroup/project")
+- `mr_iid` (integer): The merge request IID (internal ID)
+
+**Returns:**
+A list of files with their commentable lines, including:
+- `type`: "new" for added lines, "old" for removed lines
+- `line_number`: The line number in the file
+- `content`: The actual line content
+
+### `add_merge_request_inline_comment`
+Adds an inline comment to a specific line in a merge request diff. Only lines that have been changed (added or removed) can be commented on.
+
+**Parameters:**
+- `project_path` (string): The GitLab project path
+- `mr_iid` (integer): The merge request IID
+- `file_path` (string): Path to the file in the diff
+- `line_number` (integer): Line number to comment on (use `get_merge_request_commentable_lines` to find valid lines)
+- `comment_body` (string): The comment text
+- `line_type` (string, optional): "new" for added lines or "old" for removed lines (default: "new")
+
+**Example usage:**
+```json
+{
+  "project_path": "group/project",
+  "mr_iid": 123,
+  "file_path": "src/main.py",
+  "line_number": 15,
+  "comment_body": "This function could be optimized",
+  "line_type": "new"
+}
+```
+
 ## Testing
 
 You can test the server manually:
 
 ```bash
 # Test hello world
-echo '{"type":"tools/call","name":"hello_world","params":{}}' | ./mcp_server.py
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "hello_world", "arguments": {}}}' | python3 mcp_server.py
 
 # Test merge request diff fetch
-echo '{"type":"tools/call","name":"fetch_merge_request_diff","params":{"project_path":"your/project/path","mr_iid":123}}' | ./mcp_server.py
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "fetch_merge_request_diff", "arguments": {"project_path": "your/project/path", "mr_iid": 123}}}' | python3 mcp_server.py
+
+# Test getting commentable lines
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_merge_request_commentable_lines", "arguments": {"project_path": "your/project/path", "mr_iid": 123}}}' | python3 mcp_server.py
+
+# Test adding an inline comment (requires valid GitLab credentials)
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "add_merge_request_inline_comment", "arguments": {"project_path": "your/project/path", "mr_iid": 123, "file_path": "src/main.py", "line_number": 15, "comment_body": "Test comment"}}}' | python3 mcp_server.py
+```
+
+### Running Unit Tests
+
+```bash
+# Test diff parsing functionality
+python3 test_diff_parsing.py
 ```
 
 ## Troubleshooting

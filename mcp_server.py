@@ -18,6 +18,119 @@ def fetch_mr_diff(project_path, mr_iid):
     return [{"file": c["new_path"], "diff": c["diff"]} for c in data.get("changes", [])]
 
 
+def fetch_mr_details(project_path, mr_iid):
+    """Fetch merge request details including diff_refs needed for inline comments"""
+    encoded_path = urllib.parse.quote_plus(project_path)
+    url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}"
+    resp = requests.get(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
+    resp.raise_for_status()
+    return resp.json()
+
+
+def parse_diff_for_line_numbers(diff_content):
+    """Parse diff content to extract valid line numbers for comments"""
+    lines = diff_content.split('\n')
+    valid_lines = []
+    
+    current_new_line = 0
+    current_old_line = 0
+    
+    for line in lines:
+        if line.startswith('@@'):
+            # Parse hunk header to get starting line numbers
+            # Format: @@ -old_start,old_count +new_start,new_count @@
+            import re
+            match = re.match(r'@@ -(\d+),?\d* \+(\d+),?\d* @@', line)
+            if match:
+                current_old_line = int(match.group(1))
+                current_new_line = int(match.group(2))
+            continue
+            
+        if line.startswith('+') and not line.startswith('+++'):
+            # This is a new line that can be commented on
+            valid_lines.append({
+                'type': 'new',
+                'line_number': current_new_line,
+                'content': line[1:]  # Remove the + prefix
+            })
+            current_new_line += 1
+        elif line.startswith('-') and not line.startswith('---'):
+            # This is a deleted line that can be commented on
+            valid_lines.append({
+                'type': 'old', 
+                'line_number': current_old_line,
+                'content': line[1:]  # Remove the - prefix
+            })
+            current_old_line += 1
+        elif line.startswith(' '):
+            # Context line - both line numbers advance
+            current_new_line += 1
+            current_old_line += 1
+            
+    return valid_lines
+
+
+def get_mr_commentable_lines(project_path, mr_iid):
+    """Get a list of lines that can be commented on in a merge request"""
+    encoded_path = urllib.parse.quote_plus(project_path)
+    url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/changes"
+    resp = requests.get(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
+    resp.raise_for_status()
+    data = resp.json()
+    
+    result = []
+    for change in data.get("changes", []):
+        file_path = change["new_path"]
+        diff_content = change["diff"]
+        valid_lines = parse_diff_for_line_numbers(diff_content)
+        
+        result.append({
+            "file": file_path,
+            "commentable_lines": valid_lines
+        })
+    
+    return result
+
+
+def add_mr_inline_comment(project_path, mr_iid, file_path, line_number, comment_body, line_type="new"):
+    """Add an inline comment to a merge request"""
+    encoded_path = urllib.parse.quote_plus(project_path)
+    
+    # First, get the merge request details to extract diff_refs
+    mr_details = fetch_mr_details(project_path, mr_iid)
+    diff_refs = mr_details.get('diff_refs')
+    
+    if not diff_refs:
+        raise ValueError("Could not get diff_refs from merge request")
+    
+    # Create the position object for the inline comment
+    position = {
+        'base_sha': diff_refs['base_sha'],
+        'start_sha': diff_refs['start_sha'], 
+        'head_sha': diff_refs['head_sha'],
+        'position_type': 'text',
+        'new_path': file_path
+    }
+    
+    # Add line number based on type
+    if line_type == 'new':
+        position['new_line'] = line_number
+    else:
+        position['old_line'] = line_number
+        position['old_path'] = file_path
+    
+    # Create the discussion
+    url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/discussions"
+    data = {
+        'body': comment_body,
+        'position': position
+    }
+    
+    resp = requests.post(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN}, json=data)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def respond(obj):
     """Send a JSON response over stdout"""
     sys.stdout.write(json.dumps(obj) + "\n")
@@ -78,6 +191,34 @@ while True:
                             },
                             "required": ["project_path", "mr_iid"]
                         }
+                    },
+                    {
+                        "name": "add_merge_request_inline_comment",
+                        "description": "Adds an inline comment to a specific line in a merge request diff",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "project_path": {"type": "string", "description": "GitLab project path"},
+                                "mr_iid": {"type": "integer", "description": "Merge request IID"},
+                                "file_path": {"type": "string", "description": "Path to the file in the diff"},
+                                "line_number": {"type": "integer", "description": "Line number to comment on"},
+                                "comment_body": {"type": "string", "description": "The comment text"},
+                                "line_type": {"type": "string", "enum": ["new", "old"], "default": "new", "description": "Whether to comment on new line (added) or old line (removed)"}
+                            },
+                            "required": ["project_path", "mr_iid", "file_path", "line_number", "comment_body"]
+                        }
+                    },
+                    {
+                        "name": "get_merge_request_commentable_lines",
+                        "description": "Gets a list of lines that can be commented on in a merge request diff",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "project_path": {"type": "string", "description": "GitLab project path"},
+                                "mr_iid": {"type": "integer", "description": "Merge request IID"}
+                            },
+                            "required": ["project_path", "mr_iid"]
+                        }
                     }
                 ]
             }
@@ -122,6 +263,72 @@ while True:
                     "error": {
                         "code": -32603,
                         "message": f"fetch_merge_request_diff failed: {e}"
+                    }
+                })
+        elif msg.get("params", {}).get("name") == "add_merge_request_inline_comment":
+            try:
+                params = msg.get("params", {}).get("arguments", {})
+                project_path = params.get("project_path")
+                mr_iid = params.get("mr_iid")
+                file_path = params.get("file_path")
+                line_number = params.get("line_number")
+                comment_body = params.get("comment_body")
+                line_type = params.get("line_type", "new")
+                
+                if not all([project_path, mr_iid, file_path, line_number, comment_body]):
+                    raise ValueError("Missing required parameters")
+                
+                result = add_mr_inline_comment(project_path, mr_iid, file_path, line_number, comment_body, line_type)
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Successfully added inline comment to {file_path} at line {line_number}. Discussion ID: {result.get('id')}"
+                            }
+                        ]
+                    }
+                })
+            except Exception as e:
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "error": {
+                        "code": -32603,
+                        "message": f"add_merge_request_inline_comment failed: {e}"
+                    }
+                })
+        elif msg.get("params", {}).get("name") == "get_merge_request_commentable_lines":
+            try:
+                params = msg.get("params", {}).get("arguments", {})
+                project_path = params.get("project_path")
+                mr_iid = params.get("mr_iid")
+                
+                if not all([project_path, mr_iid]):
+                    raise ValueError("Missing required parameters: project_path and mr_iid")
+                
+                result = get_mr_commentable_lines(project_path, mr_iid)
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(result, indent=2)
+                            }
+                        ]
+                    }
+                })
+            except Exception as e:
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "error": {
+                        "code": -32603,
+                        "message": f"get_merge_request_commentable_lines failed: {e}"
                     }
                 })
 
