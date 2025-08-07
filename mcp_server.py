@@ -6,9 +6,11 @@ import os
 import urllib.parse
 GITLAB_URL = os.environ.get("GITLAB_URL", "https://gitlab.solaredge.com")
 GITLAB_TOKEN = os.environ.get("GITLAB_TOKEN")
+DEFAULT_PROJECT_PATH = os.environ.get("GITLAB_PROJECT_PATH", "portialinuxdevelopers/sources/apps/core")
 
 
-def fetch_mr_diff(project_path, mr_iid):
+def fetch_mr_diff(mr_iid):
+    project_path = DEFAULT_PROJECT_PATH
     encoded_path = urllib.parse.quote_plus(project_path)
     url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/changes"
     resp = requests.get(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
@@ -18,8 +20,9 @@ def fetch_mr_diff(project_path, mr_iid):
     return [{"file": c["new_path"], "diff": c["diff"]} for c in data.get("changes", [])]
 
 
-def fetch_mr_details(project_path, mr_iid):
+def fetch_mr_details(mr_iid):
     """Fetch merge request details including diff_refs needed for inline comments"""
+    project_path = DEFAULT_PROJECT_PATH
     encoded_path = urllib.parse.quote_plus(project_path)
     url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}"
     resp = requests.get(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
@@ -70,8 +73,9 @@ def parse_diff_for_line_numbers(diff_content):
     return valid_lines
 
 
-def get_mr_commentable_lines(project_path, mr_iid):
+def get_mr_commentable_lines(mr_iid):
     """Get a list of lines that can be commented on in a merge request"""
+    project_path = DEFAULT_PROJECT_PATH
     encoded_path = urllib.parse.quote_plus(project_path)
     url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/changes"
     resp = requests.get(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN})
@@ -92,12 +96,13 @@ def get_mr_commentable_lines(project_path, mr_iid):
     return result
 
 
-def add_mr_inline_comment(project_path, mr_iid, file_path, line_number, comment_body, line_type="new"):
+def add_mr_inline_comment(mr_iid, file_path, line_number, comment_body, line_type="new"):
     """Add an inline comment to a merge request"""
+    project_path = DEFAULT_PROJECT_PATH
     encoded_path = urllib.parse.quote_plus(project_path)
     
     # First, get the merge request details to extract diff_refs
-    mr_details = fetch_mr_details(project_path, mr_iid)
+    mr_details = fetch_mr_details(mr_iid)
     diff_refs = mr_details.get('diff_refs')
     
     if not diff_refs:
@@ -131,8 +136,9 @@ def add_mr_inline_comment(project_path, mr_iid, file_path, line_number, comment_
     return resp.json()
 
 
-def add_mr_general_comment(project_path, mr_iid, comment_body):
+def add_mr_general_comment(mr_iid, comment_body):
     """Add a general comment to a merge request"""
+    project_path = DEFAULT_PROJECT_PATH
     encoded_path = urllib.parse.quote_plus(project_path)
     url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/notes"
     data = {
@@ -199,10 +205,9 @@ while True:
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "project_path": {"type": "string"},
                                 "mr_iid": {"type": "integer"}
                             },
-                            "required": ["project_path", "mr_iid"]
+                            "required": ["mr_iid"]
                         }
                     },
                     {
@@ -211,14 +216,13 @@ while True:
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "project_path": {"type": "string", "description": "GitLab project path"},
                                 "mr_iid": {"type": "integer", "description": "Merge request IID"},
                                 "file_path": {"type": "string", "description": "Path to the file in the diff"},
                                 "line_number": {"type": "integer", "description": "Line number to comment on"},
                                 "comment_body": {"type": "string", "description": "The comment text"},
                                 "line_type": {"type": "string", "enum": ["new", "old"], "default": "new", "description": "Whether to comment on new line (added) or old line (removed)"}
                             },
-                            "required": ["project_path", "mr_iid", "file_path", "line_number", "comment_body"]
+                            "required": ["mr_iid", "file_path", "line_number", "comment_body"]
                         }
                     },
                     {
@@ -227,10 +231,9 @@ while True:
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "project_path": {"type": "string", "description": "GitLab project path"},
                                 "mr_iid": {"type": "integer", "description": "Merge request IID"}
                             },
-                            "required": ["project_path", "mr_iid"]
+                            "required": ["mr_iid"]
                         }
                     },
                     {
@@ -239,11 +242,10 @@ while True:
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "project_path": {"type": "string", "description": "GitLab project path"},
                                 "mr_iid": {"type": "integer", "description": "Merge request IID"},
                                 "comment_body": {"type": "string", "description": "The comment text"}
                             },
-                            "required": ["project_path", "mr_iid", "comment_body"]
+                            "required": ["mr_iid", "comment_body"]
                         }
                     }
                 ]
@@ -267,9 +269,8 @@ while True:
         elif msg.get("params", {}).get("name") == "fetch_merge_request_diff":
             try:
                 params = msg.get("params", {}).get("arguments", {})
-                project_path = params.get("project_path") or "portialinuxdevelopers/sources/apps/core"
                 mr_iid = params["mr_iid"]
-                result = fetch_mr_diff(project_path, mr_iid)
+                result = fetch_mr_diff(mr_iid)
                 respond({
                     "jsonrpc": "2.0",
                     "id": msg.get("id"),
@@ -294,17 +295,16 @@ while True:
         elif msg.get("params", {}).get("name") == "add_merge_request_inline_comment":
             try:
                 params = msg.get("params", {}).get("arguments", {})
-                project_path = params.get("project_path")
                 mr_iid = params.get("mr_iid")
                 file_path = params.get("file_path")
                 line_number = params.get("line_number")
                 comment_body = params.get("comment_body")
                 line_type = params.get("line_type", "new")
                 
-                if not all([project_path, mr_iid, file_path, line_number, comment_body]):
+                if not all([mr_iid, file_path, line_number, comment_body]):
                     raise ValueError("Missing required parameters")
                 
-                result = add_mr_inline_comment(project_path, mr_iid, file_path, line_number, comment_body, line_type)
+                result = add_mr_inline_comment(mr_iid, file_path, line_number, comment_body, line_type)
                 respond({
                     "jsonrpc": "2.0",
                     "id": msg.get("id"),
@@ -329,13 +329,12 @@ while True:
         elif msg.get("params", {}).get("name") == "get_merge_request_commentable_lines":
             try:
                 params = msg.get("params", {}).get("arguments", {})
-                project_path = params.get("project_path")
                 mr_iid = params.get("mr_iid")
                 
-                if not all([project_path, mr_iid]):
-                    raise ValueError("Missing required parameters: project_path and mr_iid")
+                if not mr_iid:
+                    raise ValueError("Missing required parameter: mr_iid")
                 
-                result = get_mr_commentable_lines(project_path, mr_iid)
+                result = get_mr_commentable_lines(mr_iid)
                 respond({
                     "jsonrpc": "2.0",
                     "id": msg.get("id"),
@@ -360,14 +359,13 @@ while True:
         elif msg.get("params", {}).get("name") == "add_merge_request_general_comment":
             try:
                 params = msg.get("params", {}).get("arguments", {})
-                project_path = params.get("project_path")
                 mr_iid = params.get("mr_iid")
                 comment_body = params.get("comment_body")
                 
-                if not all([project_path, mr_iid, comment_body]):
-                    raise ValueError("Missing required parameters: project_path, mr_iid, and comment_body")
+                if not all([mr_iid, comment_body]):
+                    raise ValueError("Missing required parameters: mr_iid and comment_body")
                 
-                result = add_mr_general_comment(project_path, mr_iid, comment_body)
+                result = add_mr_general_comment(mr_iid, comment_body)
                 respond({
                     "jsonrpc": "2.0",
                     "id": msg.get("id"),
