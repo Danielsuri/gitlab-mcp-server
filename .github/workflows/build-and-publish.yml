@@ -1,0 +1,140 @@
+name: Build and Publish Binary Package
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v0.1.0
+  release:
+    types: [published]
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel setuptools cython
+    
+    - name: Install runtime dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Build binary wheel
+      run: |
+        python -m build --wheel --no-isolation
+    
+    - name: Verify binary package (no source files)
+      run: |
+        # Check that no .py files (except __init__.py) are in the wheel
+        wheel_file=$(ls dist/*.whl)
+        echo "Checking wheel contents: $wheel_file"
+        unzip -l "$wheel_file"
+        
+        # Ensure source files are not included
+        if unzip -l "$wheel_file" | grep -E "(mcp_server\.py|test_mcp_server\.py)" | grep -v "__init__"; then
+          echo "ERROR: Source files found in binary wheel!"
+          exit 1
+        fi
+        
+        # Ensure compiled extensions are included
+        if ! unzip -l "$wheel_file" | grep -E "\.so$"; then
+          echo "ERROR: No compiled extensions found in wheel!"
+          exit 1
+        fi
+        
+        echo "✅ Binary wheel verification passed"
+    
+    - name: Test binary package installation
+      run: |
+        # Create clean test environment
+        python -m venv test_env
+        source test_env/bin/activate
+        
+        # Install the wheel with dependencies
+        pip install dist/*.whl
+        
+        # Test basic import
+        python -c "import gitlab_mcp_server; print('✅ Binary package imports successfully')"
+        
+        # Test entry point
+        which gitlab-mcp-server
+        echo "✅ Entry point created successfully"
+    
+    - name: Upload wheel artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheel-${{ matrix.python-version }}
+        path: dist/*.whl
+    
+    - name: Publish to GitHub Packages
+      if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        TWINE_REPOSITORY_URL: https://pypi.pkg.github.com/${{ github.repository_owner }}/
+      run: |
+        pip install twine
+        twine upload dist/*.whl
+  
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all wheel artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: wheel-*
+        merge-multiple: true
+        path: dist/
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          Binary-only Python wheel release of GitLab MCP Server.
+          
+          ## Installation
+          ```bash
+          pip install --extra-index-url https://pypi.pkg.github.com/${{ github.repository_owner }}/ gitlab-mcp-server
+          ```
+          
+          ## Changes
+          - Compiled Python modules to binary extensions (.so files)
+          - Source code protection through binary-only distribution
+          - Cross-platform wheel support
+        draft: false
+        prerelease: false
+    
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dist/
+        asset_name: wheels
+        asset_content_type: application/zip
