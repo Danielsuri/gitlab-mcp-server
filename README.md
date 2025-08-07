@@ -1,23 +1,28 @@
 # Private GitLab MCP Server
 
-[![One-Click Install](https://img.shields.io/badge/One--Click-Install-green?style=for-the-badge&logo=download)](https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh)
+[![One-Click Install](https://img.shields.io/badge/One--Click-Install-green?style=for-the-badge&logo=download)](#quick-installation)
 
 A Model Context Protocol (MCP) server for fetching GitLab merge request diffs from your private GitLab instance.
 
 ## Quick Installation
 
+> **⚠️ Important Note:** This is a private repository, so the traditional `curl | bash` installation method won't work. You need to clone the repository first.
+
 ### 🚀 One-Click Full Install
 
-Run this single command to download, install, and configure everything automatically:
+Since this is a private repository, clone it first and then run the installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh | bash
+git clone https://github.com/Danielsuri/gitlab-mcp-server.git
+cd gitlab-mcp-server
+./install-oneclick.sh
 ```
 
-**Or download and run the script:**
+**Alternative: Download and run manually:**
 
 ```bash
-wget https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh
+git clone https://github.com/Danielsuri/gitlab-mcp-server.git
+cd gitlab-mcp-server
 chmod +x install-oneclick.sh
 ./install-oneclick.sh
 ```
@@ -177,6 +182,22 @@ python3 test_diff_parsing.py
 ```
 
 ## Troubleshooting
+
+### Installation Issues
+
+- **`curl: (22) The requested URL returned error: 404`**: This happens because this is a private repository. You cannot use `curl` to download scripts directly from private repositories. Use the git clone method instead:
+  ```bash
+  git clone https://github.com/Danielsuri/gitlab-mcp-server.git
+  cd gitlab-mcp-server
+  ./install-oneclick.sh
+  ```
+
+- **Authentication failed**: Make sure you have access to this private repository. You can test with:
+  ```bash
+  git clone https://github.com/Danielsuri/gitlab-mcp-server.git
+  ```
+
+### Runtime Issues
 
 - **Connection issues**: Make sure you're connected to the VPN if your GitLab instance requires it
 - **401 Unauthorized**: Check that your GitLab token is valid and has the correct permissions
