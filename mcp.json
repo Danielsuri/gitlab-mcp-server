@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "gitlab-mcp-server": {
+      "command": "python3",
+      "args": [
+        "mcp_server.py"
+      ],
+      "cwd": "/home/runner/work/gitlab-mcp-server/gitlab-mcp-server",
+      "env": {
+        "GITLAB_URL": "https://gitlab.solaredge.com",
+        "GITLAB_TOKEN": "YOUR_GITLAB_TOKEN_HERE",
+        "GITLAB_PROJECT_PATH": "portialinuxdevelopers/sources/apps/core"
+      }
+    }
+  }
+}
