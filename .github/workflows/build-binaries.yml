@@ -2,15 +2,15 @@ name: Build Linux Binary
 
 on:
   push:
-    branches: [ main, master, copilot/fix-9 ]
+    branches: [ master ]
     tags: [ 'v*' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ master ]
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     
     steps:
     - uses: actions/checkout@v4
