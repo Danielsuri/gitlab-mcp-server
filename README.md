@@ -2,7 +2,32 @@
 
 A Model Context Protocol (MCP) server for fetching GitLab merge request diffs from your private GitLab instance.
 
-## Setup Instructions
+## Quick Installation
+
+### 🚀 One-Click Install for VS Code
+
+Click this link to install the GitLab MCP Server directly in VS Code:
+
+**[Install GitLab MCP Server](vscode:mcp/install?%7B%22name%22%3A%20%22gitlab-mcp-server%22%2C%20%22displayName%22%3A%20%22GitLab%20MCP%20Server%22%2C%20%22repository%22%3A%20%22https%3A//github.com/Danielsuri/gitlab-mcp-server%22%2C%20%22command%22%3A%20%22python3%22%2C%20%22args%22%3A%20%5B%22mcp_server.py%22%5D%2C%20%22env%22%3A%20%7B%22GITLAB_URL%22%3A%20%22https%3A//gitlab.solaredge.com%22%2C%20%22GITLAB_TOKEN%22%3A%20%22YOUR_GITLAB_TOKEN_HERE%22%2C%20%22GITLAB_PROJECT_PATH%22%3A%20%22portialinuxdevelopers/sources/apps/core%22%7D%7D)**
+
+> **Note:** After clicking the install link, you'll need to:
+> 1. Clone this repository to your local machine
+> 2. Install dependencies with `pip install -r requirements.txt`
+> 3. Update your GitLab token in the configuration
+
+### 🔧 Automated Setup Script
+
+For an interactive installation experience:
+
+```bash
+git clone https://github.com/Danielsuri/gitlab-mcp-server.git
+cd gitlab-mcp-server
+python3 install.py
+```
+
+This will guide you through the setup process and generate the necessary configuration files.
+
+## Manual Setup Instructions
 
 ### 1. Install Dependencies
 

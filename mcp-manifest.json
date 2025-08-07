@@ -1,0 +1,63 @@
+{
+  "name": "gitlab-mcp-server",
+  "displayName": "GitLab MCP Server",
+  "description": "A Model Context Protocol (MCP) server for fetching GitLab merge request diffs from your private GitLab instance",
+  "version": "0.1.0",
+  "author": "Danielsuri",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Danielsuri/gitlab-mcp-server.git"
+  },
+  "main": "mcp_server.py",
+  "capabilities": {
+    "tools": [
+      {
+        "name": "hello_world",
+        "description": "Returns a friendly hello message"
+      },
+      {
+        "name": "fetch_merge_request_diff",
+        "description": "Fetches the diff of a given merge request for a GitLab project"
+      },
+      {
+        "name": "get_merge_request_commentable_lines",
+        "description": "Gets a list of lines that can be commented on in a merge request diff"
+      },
+      {
+        "name": "add_merge_request_inline_comment",
+        "description": "Adds an inline comment to a specific line in a merge request diff"
+      },
+      {
+        "name": "add_merge_request_general_comment",
+        "description": "Adds a general comment to a merge request"
+      }
+    ]
+  },
+  "configuration": {
+    "environment": [
+      {
+        "name": "GITLAB_URL",
+        "description": "Your GitLab instance URL",
+        "required": false,
+        "default": "https://gitlab.solaredge.com"
+      },
+      {
+        "name": "GITLAB_TOKEN",
+        "description": "Your GitLab personal access token with read_api scope",
+        "required": true,
+        "type": "secret"
+      },
+      {
+        "name": "GITLAB_PROJECT_PATH",
+        "description": "Default GitLab project path (e.g., group/project)",
+        "required": false,
+        "default": "portialinuxdevelopers/sources/apps/core"
+      }
+    ]
+  },
+  "installation": {
+    "type": "python",
+    "requirements": "requirements.txt",
+    "python_version": ">=3.8"
+  }
+}
