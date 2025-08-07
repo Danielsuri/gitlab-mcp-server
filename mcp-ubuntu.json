@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "private-gitlab": {
+      "command": "./gitlab-mcp-server",
+      "args": [],
+      "env": {
+        "GITLAB_URL": "https://gitlab.solaredge.com",
+        "GITLAB_TOKEN": "YOUR_GITLAB_TOKEN_HERE"
+      }
+    }
+  }
+}
