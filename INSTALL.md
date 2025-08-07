@@ -4,16 +4,39 @@ This guide provides multiple ways to install and configure the GitLab MCP Server
 
 ## Quick Installation Options
 
-### Option 1: One-Click Install for VS Code
+### Option 1: One-Click Full Install (Recommended)
 
-**For VS Code with MCP Extension:**
+**Complete automated installation:**
 
-Click this link to install directly:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh | bash
+```
+
+This single command will:
+- ✅ Download the repository or binary automatically  
+- ✅ Set up virtual environment and dependencies
+- ✅ Create MCP configuration file
+- ✅ Guide you through GitLab token setup
+- ✅ Install to `~/.mcp/gitlab-mcp-server/`
+
+**Or download and inspect first:**
+```bash
+wget https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh
+chmod +x install-oneclick.sh
+./install-oneclick.sh
+```
+
+### Option 2: VS Code MCP Integration
+
+**After using Option 1**, you can use this VS Code link to add the server configuration:
+
 ```
 vscode:mcp/install?%7B%22name%22%3A%20%22gitlab-mcp-server%22%2C%20%22displayName%22%3A%20%22GitLab%20MCP%20Server%22%2C%20%22repository%22%3A%20%22https%3A//github.com/Danielsuri/gitlab-mcp-server%22%2C%20%22command%22%3A%20%22python3%22%2C%20%22args%22%3A%20%5B%22mcp_server.py%22%5D%2C%20%22env%22%3A%20%7B%22GITLAB_URL%22%3A%20%22https%3A//gitlab.solaredge.com%22%2C%20%22GITLAB_TOKEN%22%3A%20%22YOUR_GITLAB_TOKEN_HERE%22%2C%20%22GITLAB_PROJECT_PATH%22%3A%20%22portialinuxdevelopers/sources/apps/core%22%7D%7D
 ```
 
-### Option 2: Automated Setup Script
+> **Important:** The VS Code link only adds the configuration. You must first run Option 1 to download the actual server files.
+
+### Option 3: Manual Repository Clone + Interactive Setup
 
 1. Clone the repository:
    ```bash
@@ -28,7 +51,7 @@ vscode:mcp/install?%7B%22name%22%3A%20%22gitlab-mcp-server%22%2C%20%22displayNam
 
 3. Follow the prompts to configure your GitLab settings.
 
-### Option 3: Manual Configuration
+### Option 3: Manual Repository Clone + Interactive Setup
 
 1. **Clone and setup:**
    ```bash

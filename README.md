@@ -1,21 +1,40 @@
 # Private GitLab MCP Server
 
-[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-blue?style=for-the-badge&logo=visual-studio-code)](vscode:mcp/install?%7B%22name%22%3A%20%22gitlab-mcp-server%22%2C%20%22displayName%22%3A%20%22GitLab%20MCP%20Server%22%2C%20%22repository%22%3A%20%22https%3A//github.com/Danielsuri/gitlab-mcp-server%22%2C%20%22command%22%3A%20%22python3%22%2C%20%22args%22%3A%20%5B%22mcp_server.py%22%5D%2C%20%22env%22%3A%20%7B%22GITLAB_URL%22%3A%20%22https%3A//gitlab.solaredge.com%22%2C%20%22GITLAB_TOKEN%22%3A%20%22YOUR_GITLAB_TOKEN_HERE%22%2C%22GITLAB_PROJECT_PATH%22%3A%20%22portialinuxdevelopers/sources/apps/core%22%7D%7D)
+[![One-Click Install](https://img.shields.io/badge/One--Click-Install-green?style=for-the-badge&logo=download)](https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh)
 
 A Model Context Protocol (MCP) server for fetching GitLab merge request diffs from your private GitLab instance.
 
 ## Quick Installation
 
-### 🚀 One-Click Install for VS Code
+### 🚀 One-Click Full Install
 
-Click this link to install the GitLab MCP Server directly in VS Code:
+Run this single command to download, install, and configure everything automatically:
 
-**[Install GitLab MCP Server](vscode:mcp/install?%7B%22name%22%3A%20%22gitlab-mcp-server%22%2C%20%22displayName%22%3A%20%22GitLab%20MCP%20Server%22%2C%20%22repository%22%3A%20%22https%3A//github.com/Danielsuri/gitlab-mcp-server%22%2C%20%22command%22%3A%20%22python3%22%2C%20%22args%22%3A%20%5B%22mcp_server.py%22%5D%2C%20%22env%22%3A%20%7B%22GITLAB_URL%22%3A%20%22https%3A//gitlab.solaredge.com%22%2C%20%22GITLAB_TOKEN%22%3A%20%22YOUR_GITLAB_TOKEN_HERE%22%2C%20%22GITLAB_PROJECT_PATH%22%3A%20%22portialinuxdevelopers/sources/apps/core%22%7D%7D)**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh | bash
+```
 
-> **Note:** After clicking the install link, you'll need to:
-> 1. Clone this repository to your local machine
-> 2. Install dependencies with `pip install -r requirements.txt`
-> 3. Update your GitLab token in the configuration
+**Or download and run the script:**
+
+```bash
+wget https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh
+chmod +x install-oneclick.sh
+./install-oneclick.sh
+```
+
+This script will:
+- ✅ Download the repository or binary automatically
+- ✅ Set up virtual environment and dependencies (if using source)
+- ✅ Create MCP configuration file
+- ✅ Guide you through GitLab token setup
+
+### 🖥️ VS Code MCP Integration
+
+After running the one-click installer above, you can use this VS Code link to quickly add the server to VS Code MCP extension:
+
+**[Add to VS Code MCP](vscode:mcp/install?%7B%22name%22%3A%20%22gitlab-mcp-server%22%2C%20%22displayName%22%3A%20%22GitLab%20MCP%20Server%22%2C%20%22repository%22%3A%20%22https%3A//github.com/Danielsuri/gitlab-mcp-server%22%2C%20%22command%22%3A%20%22python3%22%2C%20%22args%22%3A%20%5B%22mcp_server.py%22%5D%2C%20%22env%22%3A%20%7B%22GITLAB_URL%22%3A%20%22https%3A//gitlab.solaredge.com%22%2C%20%22GITLAB_TOKEN%22%3A%20%22YOUR_GITLAB_TOKEN_HERE%22%2C%20%22GITLAB_PROJECT_PATH%22%3A%20%22portialinuxdevelopers/sources/apps/core%22%7D%7D)**
+
+> **Important:** The VS Code link only adds configuration - you still need to run the one-click installer above first to download the actual server files.
 
 ### 🔧 Automated Setup Script
 

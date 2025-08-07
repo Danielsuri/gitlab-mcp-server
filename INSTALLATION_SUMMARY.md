@@ -9,8 +9,13 @@ This directory contains multiple installation methods for the GitLab MCP Server:
 - **`mcp.json`** - Template MCP client configuration
 
 ### Installation Scripts
-- **`install.py`** - Interactive Python installation script
-- **`setup.sh`** - All-in-one shell setup script (includes venv, dependencies, and config)
+- **`install-oneclick.sh`** - Complete one-click installation script (downloads repo, sets up everything)
+- **`install.py`** - Interactive Python installation script  
+- **`setup.sh`** - All-in-one shell setup script (requires manual repo clone first)
+
+### Build and Deployment
+- **`build-docker.sh`** - Docker-based build script for standalone binary
+- **`.github/workflows/build.yml`** - GitHub Actions workflow for automated builds
 
 ### Documentation
 - **`README.md`** - Main documentation with quick install options
@@ -19,13 +24,25 @@ This directory contains multiple installation methods for the GitLab MCP Server:
 
 ## Installation Methods
 
-### 1. One-Click Install (VS Code)
-Click the badge in README.md or use this URL:
+### 1. One-Click Full Install (Recommended)
+```bash
+curl -fsSL https://raw.githubusercontent.com/Danielsuri/gitlab-mcp-server/main/install-oneclick.sh | bash
+```
+**Features:**
+- ✅ Downloads repository or binary automatically
+- ✅ Sets up virtual environment and dependencies  
+- ✅ Creates MCP configuration file
+- ✅ Handles both source and binary installations
+- ✅ Installs to `~/.mcp/gitlab-mcp-server/`
+
+### 2. VS Code MCP Integration
+After using method 1, use this VS Code link:
 ```
 vscode:mcp/install?[encoded-configuration]
 ```
+**Note:** Only adds configuration - requires actual files from method 1 first.
 
-### 2. Quick Setup Script
+### 3. Manual Repository Clone + Automated Setup
 ```bash
 git clone https://github.com/Danielsuri/gitlab-mcp-server.git
 cd gitlab-mcp-server
