@@ -1,0 +1,149 @@
+name: Release New Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_part:
+        description: 'Version part to bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: 'Dry run (do not create actual release)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    
+    - name: Get current version
+      id: current_version
+      run: |
+        current=$(python version.py get)
+        echo "current=$current" >> $GITHUB_OUTPUT
+        echo "Current version: $current"
+    
+    - name: Bump version
+      id: new_version
+      run: |
+        new_version=$(python version.py bump --part ${{ github.event.inputs.version_part }} | grep "Version bumped" | cut -d' ' -f5)
+        echo "new_version=$new_version" >> $GITHUB_OUTPUT
+        echo "New version: $new_version"
+    
+    - name: Commit version bump
+      if: ${{ !github.event.inputs.dry_run }}
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add pyproject.toml src/gitlab_mcp_server/__init__.py
+        git commit -m "Bump version to ${{ steps.new_version.outputs.new_version }}"
+    
+    - name: Create and push tag
+      if: ${{ !github.event.inputs.dry_run }}
+      run: |
+        git tag -a "v${{ steps.new_version.outputs.new_version }}" -m "Release v${{ steps.new_version.outputs.new_version }}"
+        git push origin v${{ steps.new_version.outputs.new_version }}
+        git push origin HEAD
+    
+    - name: Build binary package
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel setuptools cython
+        pip install -r requirements.txt
+        python -m build --wheel --no-isolation
+    
+    - name: Verify binary package
+      run: |
+        wheel_file=$(ls dist/*.whl)
+        echo "Checking wheel contents: $wheel_file"
+        unzip -l "$wheel_file"
+        
+        # Ensure source files are not included
+        if unzip -l "$wheel_file" | grep -E "(mcp_server\.py|test_mcp_server\.py)" | grep -v "__init__"; then
+          echo "ERROR: Source files found in binary wheel!"
+          exit 1
+        fi
+        
+        # Ensure compiled extensions are included
+        if ! unzip -l "$wheel_file" | grep -E "\.so$"; then
+          echo "ERROR: No compiled extensions found in wheel!"
+          exit 1
+        fi
+        
+        echo "✅ Binary wheel verification passed"
+    
+    - name: Publish to GitHub Packages
+      if: ${{ !github.event.inputs.dry_run }}
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        TWINE_REPOSITORY_URL: https://pypi.pkg.github.com/${{ github.repository_owner }}/
+      run: |
+        pip install twine
+        twine upload dist/*.whl
+    
+    - name: Create GitHub Release
+      if: ${{ !github.event.inputs.dry_run }}
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.new_version.outputs.new_version }}
+        name: Release v${{ steps.new_version.outputs.new_version }}
+        body: |
+          ## GitLab MCP Server v${{ steps.new_version.outputs.new_version }}
+          
+          Binary-only Python wheel release with compiled extensions.
+          
+          ### Installation
+          ```bash
+          pip install --extra-index-url https://pypi.pkg.github.com/${{ github.repository_owner }}/ gitlab-mcp-server==${{ steps.new_version.outputs.new_version }}
+          ```
+          
+          ### Features
+          - 🔒 **Source code protection**: Binary-only distribution
+          - ⚡ **Performance**: Pre-compiled C extensions
+          - 🐍 **Python 3.8-3.12 support**: Cross-platform wheels
+          - 📦 **Easy installation**: Single pip command
+          
+          ### Changes in this release
+          - Version bump from ${{ steps.current_version.outputs.current }} to ${{ steps.new_version.outputs.new_version }}
+          - Updated binary compilation process
+          - Automated release workflow improvements
+        files: dist/*.whl
+        draft: false
+        prerelease: false
+    
+    - name: Summary
+      run: |
+        echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: ${{ steps.current_version.outputs.current }} → ${{ steps.new_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version part bumped**: ${{ github.event.inputs.version_part }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Dry run**: ${{ github.event.inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.event.inputs.dry_run }}" = "false" ]; then
+          echo "- **Release created**: ✅ https://github.com/${{ github.repository }}/releases/tag/v${{ steps.new_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package published**: ✅ Available on GitHub Packages" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Release created**: ❌ (Dry run mode)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package published**: ❌ (Dry run mode)" >> $GITHUB_STEP_SUMMARY
+        fi

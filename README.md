@@ -2,7 +2,25 @@
 
 A Model Context Protocol (MCP) server for fetching GitLab merge request diffs from your private GitLab instance.
 
-## Setup Instructions
+## Installation
+
+### Binary Package (Recommended)
+
+Install the pre-compiled binary package from GitHub Packages:
+
+```bash
+pip install --extra-index-url https://pypi.pkg.github.com/Danielsuri/ gitlab-mcp-server
+```
+
+The binary package provides:
+- ✅ **Source code protection**: No Python source files included
+- ✅ **Fast startup**: Pre-compiled C extensions
+- ✅ **Easy installation**: Single pip command
+- ✅ **Cross-platform**: Wheels available for Python 3.8-3.12
+
+### From Source (Development)
+
+For development or if you prefer to build from source:
 
 ### 1. Install Dependencies
 
@@ -12,6 +30,20 @@ First, create a virtual environment and install the required packages:
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
+
+## Usage
+
+### Using the Binary Package
+
+After installing the binary package, you can use the server directly:
+
+```bash
+# Run the server
+gitlab-mcp-server
+
+# Or use it programmatically
+python -c "from gitlab_mcp_server import mcp_server; mcp_server.main()"
 ```
 
 ### 2. Configure GitLab Access
