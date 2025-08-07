@@ -1,0 +1,36 @@
+FROM ubuntu:20.04
+
+# Set non-interactive frontend to avoid prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Python and pip
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and source files
+COPY requirements-ubuntu20.txt .
+COPY mcp_server.py .
+
+# Create virtual environment and install dependencies
+RUN python3 -m venv venv
+RUN . venv/bin/activate && pip install --upgrade pip
+RUN . venv/bin/activate && pip install -r requirements-ubuntu20.txt
+RUN . venv/bin/activate && pip install pyinstaller
+
+# Build the binary
+RUN . venv/bin/activate && pyinstaller --onefile --name gitlab-mcp-server-ubuntu20.04 mcp_server.py
+
+# Make the binary executable
+RUN chmod +x dist/gitlab-mcp-server-ubuntu20.04
+
+# Create output directory
+RUN mkdir -p /output
+
+# Copy the binary to output
+CMD ["cp", "dist/gitlab-mcp-server-ubuntu20.04", "/output/"]
