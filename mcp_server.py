@@ -90,6 +90,9 @@ def get_mr_commentable_lines(project_path, mr_iid):
         })
     
     return result
+
+
+def add_mr_inline_comment(project_path, mr_iid, file_path, line_number, comment_body, line_type="new"):
     """Add an inline comment to a merge request"""
     encoded_path = urllib.parse.quote_plus(project_path)
     
