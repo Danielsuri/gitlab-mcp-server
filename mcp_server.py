@@ -131,6 +131,19 @@ def add_mr_inline_comment(project_path, mr_iid, file_path, line_number, comment_
     return resp.json()
 
 
+def add_mr_general_comment(project_path, mr_iid, comment_body):
+    """Add a general comment to a merge request"""
+    encoded_path = urllib.parse.quote_plus(project_path)
+    url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/notes"
+    data = {
+        'body': comment_body
+    }
+    
+    resp = requests.post(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN}, json=data)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def respond(obj):
     """Send a JSON response over stdout"""
     sys.stdout.write(json.dumps(obj) + "\n")
@@ -218,6 +231,19 @@ while True:
                                 "mr_iid": {"type": "integer", "description": "Merge request IID"}
                             },
                             "required": ["project_path", "mr_iid"]
+                        }
+                    },
+                    {
+                        "name": "add_merge_request_general_comment",
+                        "description": "Adds a general comment to a merge request (appears in Overview tab)",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "project_path": {"type": "string", "description": "GitLab project path"},
+                                "mr_iid": {"type": "integer", "description": "Merge request IID"},
+                                "comment_body": {"type": "string", "description": "The comment text"}
+                            },
+                            "required": ["project_path", "mr_iid", "comment_body"]
                         }
                     }
                 ]
@@ -329,6 +355,38 @@ while True:
                     "error": {
                         "code": -32603,
                         "message": f"get_merge_request_commentable_lines failed: {e}"
+                    }
+                })
+        elif msg.get("params", {}).get("name") == "add_merge_request_general_comment":
+            try:
+                params = msg.get("params", {}).get("arguments", {})
+                project_path = params.get("project_path")
+                mr_iid = params.get("mr_iid")
+                comment_body = params.get("comment_body")
+                
+                if not all([project_path, mr_iid, comment_body]):
+                    raise ValueError("Missing required parameters: project_path, mr_iid, and comment_body")
+                
+                result = add_mr_general_comment(project_path, mr_iid, comment_body)
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"Successfully added general comment to merge request {mr_iid}. Note ID: {result.get('id')}"
+                            }
+                        ]
+                    }
+                })
+            except Exception as e:
+                respond({
+                    "jsonrpc": "2.0",
+                    "id": msg.get("id"),
+                    "error": {
+                        "code": -32603,
+                        "message": f"add_merge_request_general_comment failed: {e}"
                     }
                 })
 

@@ -19,6 +19,19 @@ def fetch_mr_diff(project_path, mr_iid):
     return [{"file": c["new_path"], "diff": c["diff"]} for c in data.get("changes", [])]
 
 
+def add_mr_general_comment(project_path, mr_iid, comment_body):
+    """Add a general comment to a merge request"""
+    encoded_path = urllib.parse.quote_plus(project_path)
+    url = f"{GITLAB_URL}/api/v4/projects/{encoded_path}/merge_requests/{mr_iid}/notes"
+    data = {
+        'body': comment_body
+    }
+    
+    resp = requests.post(url, headers={"PRIVATE-TOKEN": GITLAB_TOKEN}, json=data)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def respond(obj):
     """Send a JSON response over stdout"""
     sys.stdout.write(json.dumps(obj) + "\n")
@@ -69,6 +82,19 @@ elif msg_type == "tools/list":
                     },
                     "required": ["project_path", "mr_iid"]
                 }
+            },
+            {
+                "name": "add_merge_request_general_comment",
+                "description": "Adds a general comment to a merge request (appears in Overview tab)",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "project_path": {"type": "string"},
+                        "mr_iid": {"type": "integer"},
+                        "comment_body": {"type": "string"}
+                    },
+                    "required": ["project_path", "mr_iid", "comment_body"]
+                }
             }
         ]
     })
@@ -93,6 +119,26 @@ elif msg_type == "tools/call":
             respond({
                 "type": "error",
                 "message": f"fetch_merge_request_diff failed: {e}"
+            })
+    elif msg.get("name") == "add_merge_request_general_comment":
+        try:
+            params = msg.get("params", {})
+            project_path = params.get("project_path")
+            mr_iid = params.get("mr_iid")
+            comment_body = params.get("comment_body")
+            
+            if not all([project_path, mr_iid, comment_body]):
+                raise ValueError("Missing required parameters: project_path, mr_iid, and comment_body")
+            
+            result = add_mr_general_comment(project_path, mr_iid, comment_body)
+            respond({
+                "type": "tools/call_result",
+                "result": f"Successfully added general comment to merge request {mr_iid}. Note ID: {result.get('id')}"
+            })
+        except Exception as e:
+            respond({
+                "type": "error",
+                "message": f"add_merge_request_general_comment failed: {e}"
             })
 
 else:
