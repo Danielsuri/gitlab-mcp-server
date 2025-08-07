@@ -47,7 +47,7 @@ jobs:
     - name: Bump version
       id: new_version
       run: |
-        new_version=$(python version.py bump --part ${{ github.event.inputs.version_part }} | grep "Version bumped" | cut -d' ' -f5)
+        new_version=$(python version.py bump --part ${{ github.event.inputs.version_part }} | grep "Version bumped" | cut -d' ' -f6)
         echo "new_version=$new_version" >> $GITHUB_OUTPUT
         echo "New version: $new_version"
     

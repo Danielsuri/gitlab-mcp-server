@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitlab-mcp-server"
-version = "0.1.1"
+version = "0.1.3"
 description = "A Model Context Protocol (MCP) server for fetching GitLab merge request diffs from private GitLab instances"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "GitLab MCP Server", email = "noreply@example.com"}
 ]
