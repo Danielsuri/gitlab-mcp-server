@@ -32,6 +32,12 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Generated C files from Cython
+src/gitlab_mcp_server/*.c
+
+# Keep one example wheel for demonstration
+!dist/gitlab_mcp_server-*-cp312-cp312-linux_x86_64.whl
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
