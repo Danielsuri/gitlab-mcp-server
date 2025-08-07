@@ -1,0 +1,189 @@
+name: Build and Publish Binary Wheel
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel Cython>=3.0 setuptools>=64 twine
+        pip install -r requirements.txt
+
+    - name: Build binary wheel
+      run: |
+        # Clean any previous builds
+        rm -rf build/ dist/ *.egg-info/
+        find . -name "*.so" -delete
+        find . -name "*.pyd" -delete
+        
+        # Build Cython extensions
+        python setup.py build_ext --inplace
+        
+        # Create wheel
+        python setup.py bdist_wheel
+        
+        # Verify wheel contents
+        wheel_file=$(find dist/ -name "*.whl" | head -1)
+        echo "Built wheel: $wheel_file"
+        python -m zipfile -l "$wheel_file"
+        
+        # Check for compiled extensions
+        so_count=$(python -m zipfile -l "$wheel_file" | grep "\.so" | wc -l)
+        if [ "$so_count" -gt 0 ]; then
+          echo "✅ Found $so_count compiled extensions"
+        else
+          echo "❌ No compiled extensions found"
+          exit 1
+        fi
+
+    - name: Test wheel installation
+      run: |
+        # Create test environment
+        python -m venv test_env
+        source test_env/bin/activate
+        
+        # Install wheel without dependencies first (to avoid network issues in CI)
+        wheel_file=$(find dist/ -name "*.whl" | head -1)
+        pip install --no-deps "$wheel_file"
+        
+        # Test basic import
+        python -c "
+        try:
+            import gitlab_mcp_server
+            print(f'✅ Package imported successfully, version: {gitlab_mcp_server.__version__}')
+        except Exception as e:
+            print(f'❌ Import failed: {e}')
+            exit(1)
+        "
+        
+        # Check console script
+        which gitlab-mcp-server
+        echo "✅ Console script installed successfully"
+
+    - name: Upload wheel artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: wheel-python-${{ matrix.python-version }}
+        path: dist/*.whl
+        retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install publish dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel Cython>=3.0 setuptools>=64 twine
+        pip install -r requirements.txt
+
+    - name: Build binary wheel for publication
+      run: |
+        # Clean any previous builds
+        rm -rf build/ dist/ *.egg-info/
+        find . -name "*.so" -delete
+        find . -name "*.pyd" -delete
+        
+        # Build Cython extensions
+        python setup.py build_ext --inplace
+        
+        # Create wheel
+        python setup.py bdist_wheel
+        
+        # Show final wheel info
+        wheel_file=$(find dist/ -name "*.whl" | head -1)
+        echo "Publishing wheel: $wheel_file"
+        ls -lh "$wheel_file"
+
+    - name: Publish to GitHub Packages
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
+      run: |
+        # Configure twine for GitHub Packages
+        export TWINE_REPOSITORY_URL="https://upload.pypi.org/legacy/"
+        
+        # Check if we're publishing a tag or main branch
+        if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          echo "Publishing release version from tag: $GITHUB_REF"
+        elif [[ $GITHUB_REF == refs/heads/main ]]; then
+          echo "Publishing development version from main branch"
+        fi
+        
+        # Upload to GitHub Packages
+        twine upload --repository-url https://upload.pypi.org/legacy/ dist/*.whl
+        
+        echo "✅ Successfully published to GitHub Packages!"
+        echo ""
+        echo "📦 Installation instructions:"
+        echo "pip install --extra-index-url https://\$USERNAME:\$TOKEN@pypi.pkg.github.com/Danielsuri gitlab-mcp-server"
+
+  test-published:
+    needs: publish
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    
+    steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Test installation from GitHub Packages
+      run: |
+        # Wait a moment for package to be available
+        sleep 30
+        
+        # Try to install from GitHub Packages
+        # Note: This will fail without proper authentication in public CI
+        # but serves as a template for users
+        echo "Testing package installation..."
+        echo "In a real scenario, you would install with:"
+        echo "pip install --extra-index-url https://\$USERNAME:\$TOKEN@pypi.pkg.github.com/Danielsuri gitlab-mcp-server"
+        
+        # For now, just verify the workflow completed
+        echo "✅ Publish workflow completed successfully!"

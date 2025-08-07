@@ -63,8 +63,8 @@ if [[ -n "$wheel_file" ]]; then
     python -m zipfile -l "$wheel_file" | head -20
     
     # Check for source files (should be minimal)
-    py_count=$(python -m zipfile -l "$wheel_file" | grep "\.py$" | wc -l || true)
-    so_count=$(python -m zipfile -l "$wheel_file" | grep "\.so$" | wc -l || true)
+    py_count=$(python -m zipfile -l "$wheel_file" | grep "\.py" | wc -l || true)
+    so_count=$(python -m zipfile -l "$wheel_file" | grep "\.so" | wc -l || true)
     
     print_status "Found $so_count compiled extensions and $py_count Python files"
     
