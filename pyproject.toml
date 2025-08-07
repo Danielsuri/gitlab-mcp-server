@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "Cython>=3.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitlab-mcp-server"
+version = "0.1.0"
+description = "Private GitLab MCP Server for fetching merge request diffs"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Danielsuri", email = "noreply@github.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "certifi>=2025.8.3",
+    "charset-normalizer>=3.4.2",
+    "idna>=3.10",
+    "requests>=2.32.4",
+    "urllib3>=2.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "Cython>=3.0",
+    "twine",
+]
+
+[project.scripts]
+gitlab-mcp-server = "gitlab_mcp_server:run"
+
+[project.urls]
+Homepage = "https://github.com/Danielsuri/gitlab-mcp-server"
+Repository = "https://github.com/Danielsuri/gitlab-mcp-server"
+Issues = "https://github.com/Danielsuri/gitlab-mcp-server/issues"
+
+[tool.setuptools]
+packages = ["gitlab_mcp_server"]
+
+[tool.setuptools.package-data]
+gitlab_mcp_server = ["*.so", "*.pyd"]
+
+[tool.cython-lint]
+max-line-length = 88
