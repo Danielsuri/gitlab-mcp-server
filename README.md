@@ -4,19 +4,19 @@ A Model Context Protocol (MCP) server for fetching GitLab merge request diffs fr
 
 ## Installation
 
-### Binary Package (Recommended)
+### NPM Package (Recommended)
 
-Install the pre-compiled binary package from GitHub Packages:
+Install the package using npm:
 
 ```bash
-pip install --extra-index-url https://pypi.pkg.github.com/Danielsuri/ gitlab-mcp-server
+npm install -g gitlab-mcp-server
 ```
 
-The binary package provides:
-- ✅ **Source code protection**: No Python source files included
-- ✅ **Fast startup**: Pre-compiled C extensions
-- ✅ **Easy installation**: Single pip command
-- ✅ **Cross-platform**: Wheels available for Python 3.8-3.12
+The npm package provides:
+- ✅ **Easy installation**: Single npm command
+- ✅ **Cross-platform**: Works on Node.js 14+
+- ✅ **Automatic updates**: Use npm update to get latest version
+- ✅ **Global CLI**: Use `gitlab-mcp-server` command anywhere
 
 ### From Source (Development)
 
@@ -24,26 +24,26 @@ For development or if you prefer to build from source:
 
 ### 1. Install Dependencies
 
-First, create a virtual environment and install the required packages:
+First, clone the repository and install the required packages:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+git clone https://github.com/Danielsuri/gitlab-mcp-server.git
+cd gitlab-mcp-server
+npm install
 ```
 
 ## Usage
 
-### Using the Binary Package
+### Using the NPM Package
 
-After installing the binary package, you can use the server directly:
+After installing the npm package globally, you can use the server directly:
 
 ```bash
 # Run the server
 gitlab-mcp-server
 
 # Or use it programmatically
-python -c "from gitlab_mcp_server import mcp_server; mcp_server.main()"
+node -e "require('gitlab-mcp-server').main()"
 ```
 
 ### 2. Configure GitLab Access
@@ -122,7 +122,7 @@ Adds an inline comment to a specific line in a merge request diff. Only lines th
 {
   "project_path": "group/project",
   "mr_iid": 123,
-  "file_path": "src/main.py",
+  "file_path": "src/main.js",
   "line_number": 15,
   "comment_body": "This function could be optimized",
   "line_type": "new"
@@ -135,24 +135,57 @@ You can test the server manually:
 
 ```bash
 # Test hello world
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "hello_world", "arguments": {}}}' | python3 mcp_server.py
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "hello_world", "arguments": {}}}' | node server.js
 
 # Test merge request diff fetch
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "fetch_merge_request_diff", "arguments": {"project_path": "your/project/path", "mr_iid": 123}}}' | python3 mcp_server.py
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "fetch_merge_request_diff", "arguments": {"project_path": "your/project/path", "mr_iid": 123}}}' | node server.js
 
 # Test getting commentable lines
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_merge_request_commentable_lines", "arguments": {"project_path": "your/project/path", "mr_iid": 123}}}' | python3 mcp_server.py
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_merge_request_commentable_lines", "arguments": {"project_path": "your/project/path", "mr_iid": 123}}}' | node server.js
 
 # Test adding an inline comment (requires valid GitLab credentials)
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "add_merge_request_inline_comment", "arguments": {"project_path": "your/project/path", "mr_iid": 123, "file_path": "src/main.py", "line_number": 15, "comment_body": "Test comment"}}}' | python3 mcp_server.py
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "add_merge_request_inline_comment", "arguments": {"project_path": "your/project/path", "mr_iid": 123, "file_path": "src/main.js", "line_number": 15, "comment_body": "Test comment"}}}' | node server.js
 ```
 
 ### Running Unit Tests
 
 ```bash
-# Test diff parsing functionality
-python3 test_diff_parsing.py
+# Test basic functionality
+npm test
+
+# Test hello world specifically
+npm run test-hello
 ```
+
+### From Source Testing
+
+```bash
+# Test hello world with test server
+echo '{"type":"tools/call","name":"hello_world","params":{}}' | node test-server.js
+```
+
+## Development
+
+### NPM Scripts
+
+- `npm start` - Run the main server
+- `npm test` - Run the test server  
+- `npm run test-hello` - Test hello world function specifically
+
+### Environment Variables
+
+- `GITLAB_URL` - GitLab instance URL (default: "https://gitlab.example.com")
+- `GITLAB_TOKEN` - GitLab personal access token with `read_api` scope
+
+## Requirements
+
+- Node.js 14.0.0 or higher
+- Valid GitLab personal access token with `read_api` scope
+- Network access to your GitLab instance
+
+## Dependencies
+
+- `axios` - HTTP client for GitLab API requests
 
 ## Troubleshooting
 

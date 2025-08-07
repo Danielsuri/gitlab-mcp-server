@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "gitlab-mcp-server": {
+      "command": "node",
+      "args": ["server.js"],
+      "cwd": "/path/to/your/gitlab-mcp-server",
+      "env": {
+        "GITLAB_URL": "https://gitlab.example.com",
+        "GITLAB_TOKEN": "YOUR_GITLAB_TOKEN_HERE"
+      }
+    }
+  }
+}

@@ -1,4 +1,12 @@
-# Python virtual environment
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Python virtual environment (legacy - to be removed)
 venv/
 
 # Byte-compiled / optimized / DLL files
